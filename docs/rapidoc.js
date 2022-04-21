@@ -128,9 +128,6 @@ function marked_esm_escape(html, encode) {
 
 const unescapeTest = /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig;
 
-/**
- * @param {string} html
- */
 function marked_esm_unescape(html) {
   // explicitly match decimal, hex, and named HTML entities
   return html.replace(unescapeTest, (_, n) => {
@@ -146,13 +143,8 @@ function marked_esm_unescape(html) {
 }
 
 const caret = /(^|[^\[])\^/g;
-
-/**
- * @param {string | RegExp} regex
- * @param {string} opt
- */
 function edit(regex, opt) {
-  regex = typeof regex === 'string' ? regex : regex.source;
+  regex = regex.source || regex;
   opt = opt || '';
   const obj = {
     replace: (name, val) => {
@@ -170,12 +162,6 @@ function edit(regex, opt) {
 
 const nonWordAndColonTest = /[^\w:]/g;
 const originIndependentUrl = /^$|^[a-z][a-z0-9+.-]*:|^[?#]/i;
-
-/**
- * @param {boolean} sanitize
- * @param {string} base
- * @param {string} href
- */
 function cleanUrl(sanitize, base, href) {
   if (sanitize) {
     let prot;
@@ -206,10 +192,6 @@ const justDomain = /^[^:]+:\/*[^/]*$/;
 const protocol = /^([^:]+:)[\s\S]*$/;
 const domain = /^([^:]+:\/*[^/]*)[\s\S]*$/;
 
-/**
- * @param {string} base
- * @param {string} href
- */
 function resolveUrl(base, href) {
   if (!baseUrls[' ' + base]) {
     // we can ignore everything in base after the last slash of its path component,
@@ -294,14 +276,9 @@ function splitCells(tableRow, count) {
   return cells;
 }
 
-/**
- * Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
- * /c*$/ is vulnerable to REDOS.
- *
- * @param {string} str
- * @param {string} c
- * @param {boolean} invert Remove suffix of non-c chars instead. Default falsey.
- */
+// Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
+// /c*$/ is vulnerable to REDOS.
+// invert: Remove suffix of non-c chars instead. Default falsey.
 function rtrim(str, c, invert) {
   const l = str.length;
   if (l === 0) {
@@ -323,7 +300,7 @@ function rtrim(str, c, invert) {
     }
   }
 
-  return str.slice(0, l - suffLen);
+  return str.substr(0, l - suffLen);
 }
 
 function findClosingBracket(str, b) {
@@ -355,10 +332,6 @@ function checkSanitizeDeprecation(opt) {
 }
 
 // copied from https://stackoverflow.com/a/5450113/806777
-/**
- * @param {string} pattern
- * @param {number} count
- */
 function repeatString(pattern, count) {
   if (count < 1) {
     return '';
@@ -519,7 +492,7 @@ class Tokenizer {
   blockquote(src) {
     const cap = this.rules.block.blockquote.exec(src);
     if (cap) {
-      const text = cap[0].replace(/^ *>[ \t]?/gm, '');
+      const text = cap[0].replace(/^ *> ?/gm, '');
 
       return {
         type: 'blockquote',
@@ -555,7 +528,7 @@ class Tokenizer {
       }
 
       // Get next list item
-      const itemRegex = new RegExp(`^( {0,3}${bull})((?:[\t ][^\\n]*)?(?:\\n|$))`);
+      const itemRegex = new RegExp(`^( {0,3}${bull})((?: [^\\n]*)?(?:\\n|$))`);
 
       // Check if current bullet point can start a new List Item
       while (src) {
@@ -1142,10 +1115,10 @@ const block = {
   newline: /^(?: *(?:\n|$))+/,
   code: /^( {4}[^\n]+(?:\n(?: *(?:\n|$))*)?)+/,
   fences: /^ {0,3}(`{3,}(?=[^`\n]*\n)|~{3,})([^\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?=\n|$)|$)/,
-  hr: /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})(?:\n+|$)/,
+  hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
   heading: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
   blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
-  list: /^( {0,3}bull)([ \t][^\n]+?)?(?:\n|$)/,
+  list: /^( {0,3}bull)( [^\n]+?)?(?:\n|$)/,
   html: '^ {0,3}(?:' // optional indentation
     + '<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
     + '|comment[^\\n]*(\\n+|$)' // (2)
@@ -1299,9 +1272,9 @@ const inline = {
   emStrong: {
     lDelim: /^(?:\*+(?:([punct_])|[^\s*]))|^_+(?:([punct*])|([^\s_]))/,
     //        (1) and (2) can only be a Right Delimiter. (3) and (4) can only be Left.  (5) and (6) can be either Left or Right.
-    //          () Skip orphan inside strong  () Consume to delim (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
-    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[^*]+(?=[^*])|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
-    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[^_]+(?=[^_])|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
+    //        () Skip orphan delim inside strong    (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
+    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
+    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
   },
   code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
   br: /^( {2,}|\\)\n(?!\s*$)/,
@@ -1434,7 +1407,6 @@ inline.breaks = merge({}, inline.gfm, {
 
 /**
  * smartypants text replacement
- * @param {string} text
  */
 function smartypants(text) {
   return text
@@ -1456,7 +1428,6 @@ function smartypants(text) {
 
 /**
  * mangle email addresses
- * @param {string} text
  */
 function mangle(text) {
   let out = '',
@@ -1544,7 +1515,8 @@ class Lexer {
    */
   lex(src) {
     src = src
-      .replace(/\r\n|\r/g, '\n');
+      .replace(/\r\n|\r/g, '\n')
+      .replace(/\t/g, '    ');
 
     this.blockTokens(src, this.tokens);
 
@@ -1561,13 +1533,8 @@ class Lexer {
    */
   blockTokens(src, tokens = []) {
     if (this.options.pedantic) {
-      src = src.replace(/\t/g, '    ').replace(/^ +$/gm, '');
-    } else {
-      src = src.replace(/^( *)(\t+)/gm, (_, leading, tabs) => {
-        return leading + '    '.repeat(tabs.length);
-      });
+      src = src.replace(/^ +$/gm, '');
     }
-
     let token, lastToken, cutSrc, lastParagraphClipped;
 
     while (src) {
@@ -1963,31 +1930,29 @@ class Renderer {
       + '</code></pre>\n';
   }
 
-  /**
-   * @param {string} quote
-   */
   blockquote(quote) {
-    return `<blockquote>\n${quote}</blockquote>\n`;
+    return '<blockquote>\n' + quote + '</blockquote>\n';
   }
 
   html(html) {
     return html;
   }
 
-  /**
-   * @param {string} text
-   * @param {string} level
-   * @param {string} raw
-   * @param {any} slugger
-   */
   heading(text, level, raw, slugger) {
     if (this.options.headerIds) {
-      const id = this.options.headerPrefix + slugger.slug(raw);
-      return `<h${level} id="${id}">${text}</h${level}>\n`;
+      return '<h'
+        + level
+        + ' id="'
+        + this.options.headerPrefix
+        + slugger.slug(raw)
+        + '">'
+        + text
+        + '</h'
+        + level
+        + '>\n';
     }
-
     // ignore IDs
-    return `<h${level}>${text}</h${level}>\n`;
+    return '<h' + level + '>' + text + '</h' + level + '>\n';
   }
 
   hr() {
@@ -2000,11 +1965,8 @@ class Renderer {
     return '<' + type + startatt + '>\n' + body + '</' + type + '>\n';
   }
 
-  /**
-   * @param {string} text
-   */
   listitem(text) {
-    return `<li>${text}</li>\n`;
+    return '<li>' + text + '</li>\n';
   }
 
   checkbox(checked) {
@@ -2015,19 +1977,12 @@ class Renderer {
       + '> ';
   }
 
-  /**
-   * @param {string} text
-   */
   paragraph(text) {
-    return `<p>${text}</p>\n`;
+    return '<p>' + text + '</p>\n';
   }
 
-  /**
-   * @param {string} header
-   * @param {string} body
-   */
   table(header, body) {
-    if (body) body = `<tbody>${body}</tbody>`;
+    if (body) body = '<tbody>' + body + '</tbody>';
 
     return '<table>\n'
       + '<thead>\n'
@@ -2037,59 +1992,39 @@ class Renderer {
       + '</table>\n';
   }
 
-  /**
-   * @param {string} content
-   */
   tablerow(content) {
-    return `<tr>\n${content}</tr>\n`;
+    return '<tr>\n' + content + '</tr>\n';
   }
 
   tablecell(content, flags) {
     const type = flags.header ? 'th' : 'td';
     const tag = flags.align
-      ? `<${type} align="${flags.align}">`
-      : `<${type}>`;
-    return tag + content + `</${type}>\n`;
+      ? '<' + type + ' align="' + flags.align + '">'
+      : '<' + type + '>';
+    return tag + content + '</' + type + '>\n';
   }
 
-  /**
-   * span level renderer
-   * @param {string} text
-   */
+  // span level renderer
   strong(text) {
-    return `<strong>${text}</strong>`;
+    return '<strong>' + text + '</strong>';
   }
 
-  /**
-   * @param {string} text
-   */
   em(text) {
-    return `<em>${text}</em>`;
+    return '<em>' + text + '</em>';
   }
 
-  /**
-   * @param {string} text
-   */
   codespan(text) {
-    return `<code>${text}</code>`;
+    return '<code>' + text + '</code>';
   }
 
   br() {
     return this.options.xhtml ? '<br/>' : '<br>';
   }
 
-  /**
-   * @param {string} text
-   */
   del(text) {
-    return `<del>${text}</del>`;
+    return '<del>' + text + '</del>';
   }
 
-  /**
-   * @param {string} href
-   * @param {string} title
-   * @param {string} text
-   */
   link(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
     if (href === null) {
@@ -2103,20 +2038,15 @@ class Renderer {
     return out;
   }
 
-  /**
-   * @param {string} href
-   * @param {string} title
-   * @param {string} text
-   */
   image(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
     if (href === null) {
       return text;
     }
 
-    let out = `<img src="${href}" alt="${text}"`;
+    let out = '<img src="' + href + '" alt="' + text + '"';
     if (title) {
-      out += ` title="${title}"`;
+      out += ' title="' + title + '"';
     }
     out += this.options.xhtml ? '/>' : '>';
     return out;
@@ -2178,9 +2108,6 @@ class Slugger {
     this.seen = {};
   }
 
-  /**
-   * @param {string} value
-   */
   serialize(value) {
     return value
       .toLowerCase()
@@ -2194,8 +2121,6 @@ class Slugger {
 
   /**
    * Finds the next safe (unique) slug to use
-   * @param {string} originalSlug
-   * @param {boolean} isDryRun
    */
   getNextSafeSlug(originalSlug, isDryRun) {
     let slug = originalSlug;
@@ -2216,9 +2141,8 @@ class Slugger {
 
   /**
    * Convert string to unique id
-   * @param {object} [options]
-   * @param {boolean} [options.dryrun] Generates the next unique slug without
-   * updating the internal accumulator.
+   * @param {object} options
+   * @param {boolean} options.dryrun Generates the next unique slug without updating the internal accumulator.
    */
   slug(value, options = {}) {
     const slug = this.serialize(value);
@@ -2779,7 +2703,6 @@ marked.walkTokens = function(tokens, callback) {
 
 /**
  * Parse Inline
- * @param {string} src
  */
 marked.parseInline = function(src, opt) {
   // throw error in case of non string input
@@ -3761,6 +3684,7 @@ pre[class*="language-"] {
 .tab-content {
   margin:-1px 0 0 0;
   position:relative;
+  min-height: 50px;
 }
 `);
 ;// CONCATENATED MODULE: ./src/styles/nav-styles.js
@@ -27370,7 +27294,7 @@ async function ProcessSpec(specUrl, generateMissingTags = false, sortTags = fals
     } else if (v.type === 'oauth2') {
       v.typeDisplay = `OAuth (${v.securitySchemeId})`;
     } else {
-      v.typeDisplay = v.type;
+      v.typeDisplay = v.type || 'None';
     }
   }); // Servers
 
@@ -28210,27 +28134,35 @@ function pathSecurityTemplate(pathSecurity) {
     pathSecurity.forEach(pSecurity => {
       const andSecurityKeys1 = [];
       const andKeyTypes = [];
-      Object.keys(pSecurity).forEach(pathSecurityKey => {
-        let pathScopes = '';
-        const s = this.resolvedSpec.securitySchemes.find(ss => ss.securitySchemeId === pathSecurityKey);
 
-        if (pSecurity[pathSecurityKey] && Array.isArray(pSecurity[pathSecurityKey])) {
-          pathScopes = pSecurity[pathSecurityKey].join(', ');
-        }
+      if (Object.keys(pSecurity).length === 0) {
+        orSecurityKeys1.push({
+          securityTypes: 'None',
+          securityDefs: []
+        });
+      } else {
+        Object.keys(pSecurity).forEach(pathSecurityKey => {
+          let pathScopes = '';
+          const s = this.resolvedSpec.securitySchemes.find(ss => ss.securitySchemeId === pathSecurityKey);
 
-        if (s) {
-          andKeyTypes.push(s.typeDisplay);
-          andSecurityKeys1.push({ ...s,
-            ...{
-              scopes: pathScopes
-            }
-          });
-        }
-      });
-      orSecurityKeys1.push({
-        securityTypes: andKeyTypes.length > 1 ? `${andKeyTypes[0]} + ${andKeyTypes.length - 1} more` : andKeyTypes[0],
-        securityDefs: andSecurityKeys1
-      });
+          if (pSecurity[pathSecurityKey] && Array.isArray(pSecurity[pathSecurityKey])) {
+            pathScopes = pSecurity[pathSecurityKey].join(', ');
+          }
+
+          if (s) {
+            andKeyTypes.push(s.typeDisplay);
+            andSecurityKeys1.push({ ...s,
+              ...{
+                scopes: pathScopes
+              }
+            });
+          }
+        });
+        orSecurityKeys1.push({
+          securityTypes: andKeyTypes.length > 1 ? `${andKeyTypes[0]} + ${andKeyTypes.length - 1} more` : andKeyTypes[0],
+          securityDefs: andSecurityKeys1
+        });
+      }
     });
     return $`<div style="position:absolute; top:3px; right:2px; font-size:var(--font-size-small); line-height: 1.5;">
       <div style="position:relative; display:flex; min-width:350px; max-width:700px; justify-content: flex-end;">
@@ -28912,20 +28844,30 @@ function schemaToSampleObj(schema, config = {}) {
         option2_PropX: 'string'
       }
       */
-      // let i = 0;
-      // Merge all examples of each oneOf-schema (pick only the first oneof schema, because it is one-of)
-      // for (const key in schema.oneOf) {
-      const firstOneOfSchema = schema.oneOf[0];
-      const oneOfSamples = schemaToSampleObj(firstOneOfSchema, config);
+      let i = 0; // Merge all examples of each oneOf-schema
 
-      if (oneOfSamples instanceof Object) {
-        const oneOfSampleKeys = Object.keys(oneOfSamples); // eslint-disable-next-line no-loop-func
+      for (const key in schema.oneOf) {
+        const oneOfSamples = schemaToSampleObj(schema.oneOf[key], config);
 
-        oneOfSampleKeys.forEach((sampleKey, i) => {
-          const finalExample = oneOfSamples[sampleKey];
+        for (const sampleKey in oneOfSamples) {
+          // 2. In the final example include a one-of item along with properties
+          let finalExample;
+
+          if (Object.keys(objWithSchemaProps).length > 0) {
+            if (oneOfSamples[sampleKey] === null || typeof oneOfSamples[sampleKey] !== 'object') {
+              // This doesn't really make sense since every oneOf schema _should_ be an object if there are common properties, so we'll skip this
+              continue;
+            } else {
+              finalExample = Object.assign(oneOfSamples[sampleKey], objWithSchemaProps);
+            }
+          } else {
+            finalExample = oneOfSamples[sampleKey];
+          }
+
           obj[`example-${i}`] = finalExample;
-          addSchemaInfoToExample(firstOneOfSchema, obj[`example-${i}`]);
-        });
+          addSchemaInfoToExample(schema.oneOf[key], obj[`example-${i}`]);
+          i++;
+        }
       }
     }
   } else if (schema.anyOf) {
@@ -31674,7 +31616,7 @@ class ApiRequest extends lit_element_s {
 
         if (this.responseIsBlob) {
           const contentDisposition = fetchResponse.headers.get('content-disposition');
-          this.respContentDisposition = contentDisposition ? contentDisposition.split('filename=')[1].replace(/\\"/g, '') : 'filename';
+          this.respContentDisposition = contentDisposition ? contentDisposition.split('filename=')[1].replace(/"|'/g, '') : 'filename';
           respBlob = await fetchResponse.blob();
           this.responseBlobUrl = URL.createObjectURL(respBlob);
         }
@@ -42283,7 +42225,7 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 	
 /******/ 	/* webpack/runtime/getFullHash */
 /******/ 	(() => {
-/******/ 		__webpack_require__.h = () => ("91f9e574d7a20f317a48")
+/******/ 		__webpack_require__.h = () => ("3e4268ecc065aacb4404")
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/global */
@@ -42363,8 +42305,7 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 		var currentStatus = "idle";
 /******/ 		
 /******/ 		// while downloading
-/******/ 		var blockingPromises = 0;
-/******/ 		var blockingPromisesWaiting = [];
+/******/ 		var blockingPromises;
 /******/ 		
 /******/ 		// The update info
 /******/ 		var currentUpdateApplyHandlers;
@@ -42554,28 +42495,17 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 			return Promise.all(results);
 /******/ 		}
 /******/ 		
-/******/ 		function unblock() {
-/******/ 			if (--blockingPromises === 0) {
-/******/ 				setStatus("ready").then(function () {
-/******/ 					if (blockingPromises === 0) {
-/******/ 						var list = blockingPromisesWaiting;
-/******/ 						blockingPromisesWaiting = [];
-/******/ 						for (var i = 0; i < list.length; i++) {
-/******/ 							list[i]();
-/******/ 						}
-/******/ 					}
-/******/ 				});
-/******/ 			}
-/******/ 		}
-/******/ 		
 /******/ 		function trackBlockingPromise(promise) {
 /******/ 			switch (currentStatus) {
 /******/ 				case "ready":
 /******/ 					setStatus("prepare");
-/******/ 				/* fallthrough */
+/******/ 					blockingPromises.push(promise);
+/******/ 					waitForBlockingPromises(function () {
+/******/ 						return setStatus("ready");
+/******/ 					});
+/******/ 					return promise;
 /******/ 				case "prepare":
-/******/ 					blockingPromises++;
-/******/ 					promise.then(unblock, unblock);
+/******/ 					blockingPromises.push(promise);
 /******/ 					return promise;
 /******/ 				default:
 /******/ 					return promise;
@@ -42583,11 +42513,11 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 		}
 /******/ 		
 /******/ 		function waitForBlockingPromises(fn) {
-/******/ 			if (blockingPromises === 0) return fn();
-/******/ 			return new Promise(function (resolve) {
-/******/ 				blockingPromisesWaiting.push(function () {
-/******/ 					resolve(fn());
-/******/ 				});
+/******/ 			if (blockingPromises.length === 0) return fn();
+/******/ 			var blocker = blockingPromises;
+/******/ 			blockingPromises = [];
+/******/ 			return Promise.all(blocker).then(function () {
+/******/ 				return waitForBlockingPromises(fn);
 /******/ 			});
 /******/ 		}
 /******/ 		
@@ -42608,6 +42538,7 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 		
 /******/ 					return setStatus("prepare").then(function () {
 /******/ 						var updatedModules = [];
+/******/ 						blockingPromises = [];
 /******/ 						currentUpdateApplyHandlers = [];
 /******/ 		
 /******/ 						return Promise.all(
@@ -42644,11 +42575,7 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 		function hotApply(options) {
 /******/ 			if (currentStatus !== "ready") {
 /******/ 				return Promise.resolve().then(function () {
-/******/ 					throw new Error(
-/******/ 						"apply() is only allowed in ready status (state: " +
-/******/ 							currentStatus +
-/******/ 							")"
-/******/ 					);
+/******/ 					throw new Error("apply() is only allowed in ready status");
 /******/ 				});
 /******/ 			}
 /******/ 			return internalApply(options);
@@ -42767,8 +42694,7 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 		
 /******/ 		var currentUpdatedModulesList;
 /******/ 		var waitingUpdateResolves = {};
-/******/ 		function loadUpdateChunk(chunkId, updatedModulesList) {
-/******/ 			currentUpdatedModulesList = updatedModulesList;
+/******/ 		function loadUpdateChunk(chunkId) {
 /******/ 			return new Promise((resolve, reject) => {
 /******/ 				waitingUpdateResolves[chunkId] = resolve;
 /******/ 				// start update chunk loading
@@ -43231,16 +43157,15 @@ Prism.languages.js = Prism.languages.javascript;
 /******/ 				) {
 /******/ 					promises.push(loadUpdateChunk(chunkId, updatedModulesList));
 /******/ 					currentUpdateChunks[chunkId] = true;
-/******/ 				} else {
-/******/ 					currentUpdateChunks[chunkId] = false;
 /******/ 				}
 /******/ 			});
 /******/ 			if (__webpack_require__.f) {
 /******/ 				__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
 /******/ 					if (
 /******/ 						currentUpdateChunks &&
-/******/ 						__webpack_require__.o(currentUpdateChunks, chunkId) &&
-/******/ 						!currentUpdateChunks[chunkId]
+/******/ 						!__webpack_require__.o(currentUpdateChunks, chunkId) &&
+/******/ 						__webpack_require__.o(installedChunks, chunkId) &&
+/******/ 						installedChunks[chunkId] !== undefined
 /******/ 					) {
 /******/ 						promises.push(loadUpdateChunk(chunkId));
 /******/ 						currentUpdateChunks[chunkId] = true;
